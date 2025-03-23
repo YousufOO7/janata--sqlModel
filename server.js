@@ -22,6 +22,39 @@ app.get("/stocks", async (req, res) => {
   }
 });
 
+// Add a new stock
+app.post("/stocks", async (req, res) => {
+  try {
+    let { date, trade_code, open, close, high, low, volume } = req.body;
+
+    if (!date || !trade_code || isNaN(open) || isNaN(close) || isNaN(high) || isNaN(low) || isNaN(volume)) {
+      return res.status(400).json({ error: "All fields are required and must be valid numbers." });
+    }
+
+    date = new Date(date).toISOString().split("T")[0]; 
+    const formattedOpen = parseFloat(open).toFixed(2);
+    const formattedClose = parseFloat(close).toFixed(2);
+    const formattedHigh = parseFloat(high).toFixed(2);
+    const formattedLow = parseFloat(low).toFixed(2);
+    const formattedVolume = parseInt(volume, 10);
+
+    const [result] = await db.execute(
+      `INSERT INTO stock_data (date, trade_code, open, close, high, low, volume) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [date, trade_code, formattedOpen, formattedClose, formattedHigh, formattedLow, formattedVolume]
+    );
+
+    if (result.affectedRows === 1) {
+      res.status(201).json({ message: "Stock added successfully." });
+    } else {
+      res.status(500).json({ error: "Failed to add stock." });
+    }
+  } catch (err) {
+    console.error("Error adding stock:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Fetch stocks by trade_code 
 app.get("/stocks/:trade_code", async (req, res) => {
   try {
@@ -82,7 +115,6 @@ app.get("/stockById/:id", async (req, res) => {
   }
 });
 
-
 // Update stock data by id
 app.put("/stocks/:id", async (req, res) => {
   try {
@@ -118,7 +150,6 @@ app.put("/stocks/:id", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 // Delete stock data by id
 app.delete("/stocks/:id", async (req, res) => {
